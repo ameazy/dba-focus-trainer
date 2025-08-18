@@ -1,4 +1,4 @@
-import cv2
+﻿import cv2
 import numpy as np
 import pyautogui
 import time
@@ -71,25 +71,26 @@ def non_max_suppression(boxes, scores, overlapThresh):
 
     return keep
 
-def images_different(img1, img2, gray_match_threshold=500, color_diff_threshold=1000):
+
+def images_different(img1, img2, gray_match_threshold=1200, color_diff_threshold=300):
     # Convert to grayscale
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-    # Compare grayscale (should be similar)
+    # Grayscale comparison
     gray_diff = cv2.absdiff(gray1, gray2)
     gray_diff_count = np.sum(gray_diff > 30)
 
-    # Compare color (should be different)
+    # Color comparison
     color_diff = cv2.absdiff(img1, img2)
     color_diff_count = np.sum(color_diff > 30)
 
-    # Condition:
-    # Grayscale difference must be small (same shape), color difference must be large
+    # Conditions
     same_shape = gray_diff_count < gray_match_threshold
     color_changed = color_diff_count > color_diff_threshold
 
     return same_shape and color_changed
+
 
 def focus_dream_seek_window():
      # Focus Dream Seek window
@@ -172,10 +173,10 @@ def main():
     print(f"Final capture region on screen: {capture_region}")
 
     templates = {
-        "left": cv2.imread("templates/arrow_left.png"),
-        "right": cv2.imread("templates/arrow_right.png"),
-        "up": cv2.imread("templates/arrow_up.png"),
-        "down": cv2.imread("templates/arrow_down.png")
+        "left": cv2.imread("FCC/arrow_left.png"),
+        "right": cv2.imread("FCC/arrow_right.png"),
+        "up": cv2.imread("FCC/arrow_up.png"),
+        "down": cv2.imread("FCC/arrow_down.png")
     }
 
     threshold = 0.7
@@ -219,7 +220,7 @@ def main():
 
         detected_arrows.sort(key=lambda x: x[0])  # sort left to right
 
-        if len(detected_arrows) == 0:
+        if not detected_arrows:
             print("WARNING: No arrows detected.")
             restart_focus_train()
             action_delay+= 0.1
@@ -227,9 +228,8 @@ def main():
                 action_delay = MAX_DELAY
             continue
 
-        cur_arrow = 0
-        for x, y, direction in detected_arrows:
-            cur_arrow+= 1
+        max_arrows = 5
+        for idx, (x, y, direction) in enumerate(detected_arrows, start=1):
             w, h = templates[direction].shape[1], templates[direction].shape[0]
 
             # Crop before pressing key
@@ -246,10 +246,9 @@ def main():
 
             num_retries = 3
 
-            if cur_arrow == 5:
-                if not images_different(before_arrow, after_arrow):
-                    print(f"WARNING: Arrow {direction} still looks the same, but is last arrow, skipping retries")
-                    time.sleep(action_delay)
+            # 🚨 If we're on the 5th arrow, skip validation and restart detection
+            if idx == max_arrows:
+                print(f"Input for 5th arrow ({direction}), skipping validation and restarting detection.")
                 time.sleep(action_delay)
                 continue
 
