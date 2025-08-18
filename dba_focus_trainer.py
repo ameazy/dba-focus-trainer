@@ -1,4 +1,5 @@
-﻿import cv2
+﻿import argparse
+import cv2
 import numpy as np
 import pyautogui
 import time
@@ -108,12 +109,13 @@ def focus_dream_seek_window():
 
 def restart_focus_train():
     pyautogui.press("k")
-    time.sleep(3)
+    time.sleep(1)
     pyautogui.press("enter")
 
-def main():
+def main(in_delay):
     global preview_img, preview_img_copy, rx, ry, rw, rh, region_selected, action_delay
-
+    
+    action_delay = in_delay
     MAX_DELAY = 2.0 # seconds
 
     # Step 1: Focus Dream Seek window
@@ -180,7 +182,6 @@ def main():
     }
 
     threshold = 0.7
-    action_delay = 0.4 # seconds
     while True:
         screenshot = np.array(sct.grab(capture_region))
         screenshot_bgr = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
@@ -223,7 +224,7 @@ def main():
         if not detected_arrows:
             print("WARNING: No arrows detected.")
             restart_focus_train()
-            action_delay+= 0.1
+            action_delay += 0.1
             if action_delay > MAX_DELAY:
                 action_delay = MAX_DELAY
             continue
@@ -246,7 +247,7 @@ def main():
 
             num_retries = 3
 
-            # 🚨 If we're on the 5th arrow, skip validation and restart detection
+            # If we're on the 5th arrow, skip validation and restart detection
             if idx == max_arrows:
                 print(f"Input for 5th arrow ({direction}), skipping validation and restarting detection.")
                 time.sleep(action_delay)
@@ -270,5 +271,11 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Arrow recognition script for DBA")
+    parser.add_argument("--delay", type=float, default=0.1,
+                        help="Delay (in seconds) after each key press before checking arrows")
+    args = parser.parse_args()
+
+    print(f"[CONFIG] Action delay set to {args.delay} seconds")
+    main(args.delay)
 
